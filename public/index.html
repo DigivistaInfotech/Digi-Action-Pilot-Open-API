@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ActionPilot</title><link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand"><span class="logo">A</span><div><strong>ActionPilot</strong><small>Local AI operator</small></div></div>
+      <section class="card status-card">
+        <div class="row"><span>System</span><strong id="systemStatus"><i></i> Ready</strong></div>
+        <div class="row"><span>Model</span><code id="model">—</code></div>
+        <div class="row"><span>API key</span><strong id="key">—</strong></div>
+      </section>
+      <section><h2>Safety mode</h2><label class="mode"><input type="radio" name="mode" value="balanced" checked><span><b>Balanced</b><small>Reads and normal file changes run automatically. Risky actions ask first.</small></span></label><label class="mode"><input type="radio" name="mode" value="cautious"><span><b>Cautious</b><small>Every file change asks for your approval.</small></span></label></section>
+      <section><h2>Allowed workspace</h2><div class="workspace" id="workspace">Loading…</div></section>
+      <button class="stop" id="stop">■ Emergency stop</button>
+    </aside>
+    <main>
+      <header><div><p class="eyebrow">CONTROL CENTER</p><h1>What should I get done?</h1></div><span class="privacy">● Runs locally</span></header>
+      <div id="messages" class="messages"><div class="welcome"><div class="orb">✦</div><h3>Your computer, with guardrails.</h3><p>Describe a task in normal language. ActionPilot will plan it, perform safe steps, and pause before anything sensitive.</p><div class="suggestions"><button>Organize the files in my workspace by type</button><button>Create a project plan in a new Markdown file</button><button>Review all text files and prepare a summary</button></div></div></div>
+      <div id="approval" class="approval hidden"></div>
+      <form id="composer"><textarea id="prompt" rows="1" placeholder="Tell ActionPilot what to do…" required></textarea><button type="submit" aria-label="Send">➜</button></form>
+      <p class="fineprint">ActionPilot can make mistakes. Review approval requests before allowing them.</p>
+    </main>
+    <aside class="activity-panel"><div class="activity-head"><h2>Activity</h2><span id="activityCount">0 actions</span></div><div id="activity" class="activity"><div class="empty"><span>⌁</span><p>Actions will appear here as the agent works.</p></div></div></aside>
+  </div>
+  <script type="module" src="/app.js"></script>
+</body></html>
