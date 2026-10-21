@@ -4,6 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { createKnowledgeStore, answerFromKnowledge } from "./knowledge.mjs";
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 await loadEnv(path.join(appDir, ".env"));
@@ -14,6 +15,7 @@ const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 const publicDir = path.join(appDir, "public");
 const sessions = new Map();
 await fs.mkdir(root, { recursive: true });
+const knowledge = await createKnowledgeStore(appDir, root);
 
 const tools = [
   fn("list_files", "List files and folders inside the allowed workspace.", {
@@ -202,6 +204,24 @@ function newSession() {
 }
 
 async function api(req, res, url) {
+  if (url.pathname === "/api/knowledge/status" && req.method === "GET") {
+    return json(res, 200, { model, keyConfigured: Boolean(process.env.OPENAI_API_KEY), workspace: root, documents: knowledge.listDocuments("public") });
+  }
+  if (url.pathname === "/api/knowledge/import-folder" && req.method === "POST") {
+    const body = await readJson(req);
+    return json(res, 200, await knowledge.importWorkspace(String(body.relativeFolder || "knowledge"), String(body.collection || "public")));
+  }
+  if (url.pathname === "/api/knowledge/documents" && req.method === "POST") {
+    const body = await readJson(req);
+    return json(res, 201, await knowledge.importText({ title: body.title, content: body.content, sourceUrl: body.sourceUrl, collection: body.collection, updatedAt: body.updatedAt }));
+  }
+  if (url.pathname === "/api/knowledge/ask" && req.method === "POST") {
+    const body = await readJson(req), question = String(body.question || "").trim();
+    if (!question) return json(res, 400, { error: "Question is required." });
+    return json(res, 200, await answerFromKnowledge({ question, collection: String(body.collection || "public"), store: knowledge, apiKey: process.env.OPENAI_API_KEY, model }));
+  }
+  const deleteKnowledge = url.pathname.match(/^\/api\/knowledge\/documents\/([a-f0-9-]+)$/);
+  if (deleteKnowledge && req.method === "DELETE") return json(res, 200, knowledge.removeDocument(deleteKnowledge[1]));
   if (req.method === "POST" && url.pathname === "/api/sessions") return json(res, 201, publicState(newSession()));
   const match = url.pathname.match(/^\/api\/sessions\/([^/]+)(?:\/(message|approval|stop))?$/);
   if (!match) return json(res, 404, { error: "Not found" });
@@ -240,7 +260,7 @@ async function api(req, res, url) {
 
 function publicState(s) { return { ...s, workspace: root, model, keyConfigured: Boolean(process.env.OPENAI_API_KEY) }; }
 function json(res, status, value) { res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); res.end(JSON.stringify(value)); }
-async function readJson(req) { let body = ""; for await (const chunk of req) { body += chunk; if (body.length > 1_000_000) throw new Error("Request too large"); } return body ? JSON.parse(body) : {}; }
+async function readJson(req) { let body = ""; for await (const chunk of req) { body += chunk; if (body.length > 10_000_000) throw new Error("Request too large"); } return body ? JSON.parse(body) : {}; }
 async function loadEnv(file) { try { const text = await fs.readFile(file, "utf8"); for (const line of text.split(/\r?\n/)) { const match = line.match(/^([A-Z0-9_]+)=(.*)$/); if (match && !process.env[match[1]]) process.env[match[1]] = match[2].trim(); } } catch {} }
 
 const server = http.createServer(async (req, res) => {

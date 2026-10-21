@@ -6,12 +6,12 @@ For simple setup instructions, example IT and operations tasks, and troubleshoot
 
 ## Fast start on Windows
 
-1. Install Node.js 20 or newer.
+1. Install Node.js 22.5 or newer.
 2. Double-click `Start-ActionPilot.ps1`, or right-click it and choose **Run with PowerShell**.
 3. On the first run, enter the full path of the one folder the app may access and your OpenAI API key.
 4. Open <http://127.0.0.1:4310>.
 
-There are no packages to install. Future starts reuse the saved settings.
+The launcher installs the required document-reading package automatically on the first run. Future starts reuse it.
 
 ## One-folder guarantee
 
@@ -32,3 +32,20 @@ Every file path is converted to an absolute path and checked against the configu
 Move the complete `ActionPilot` folder outside this website repository first. Then create a new private repository for that folder. Never commit `.env`; it contains your API key.
 
 The app uses OpenAI's Responses API and function tools. API usage is billed separately from a ChatGPT subscription.
+
+## Knowledge Assistant (testing version)
+
+Open <http://127.0.0.1:4310/knowledge.html> after starting ActionPilot.
+
+The Knowledge Assistant can:
+
+- Store approved document text in a local SQLite database.
+- Import PDF, TXT, Markdown, CSV, JSON, and HTML files from a `knowledge` folder inside the allowed workspace.
+- Accept pasted documents with an optional official source URL.
+- Search only the published `public` collection.
+- Generate answers only from retrieved document excerpts.
+- Display document sources and a verification disclaimer.
+- Refuse unrelated questions and direct the user to the DigiVista team.
+- Detect duplicate documents using a content hash.
+
+Create a `knowledge` folder inside the assigned workspace, place test documents in it, and select **Import documents**. The current interface is for local testing only. Do not publish it on the internet yet: admin authentication, project isolation, rate limiting, and production security controls are planned for the hosted phase.

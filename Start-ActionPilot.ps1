@@ -23,4 +23,8 @@ if (-not (Test-Path -LiteralPath $envFile)) {
 }
 
 Set-Location -LiteralPath $appRoot
+if (-not (Test-Path -LiteralPath (Join-Path $appRoot "node_modules\pdf-parse"))) {
+    Write-Host "Installing required document-reading components..." -ForegroundColor Cyan
+    npm install --omit=dev
+}
 node server.mjs

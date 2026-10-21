@@ -5,7 +5,7 @@ This guide explains how to use Digi Action Pilot for personal IT and operations 
 ## What you need
 
 - A Windows computer
-- Node.js version 20 or newer
+- Node.js version 22.5 or newer
 - An OpenAI API key with API billing enabled
 - One dedicated folder that ActionPilot is allowed to access
 

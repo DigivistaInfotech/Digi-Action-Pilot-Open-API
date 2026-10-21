@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DigiVista Knowledge Assistant</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/knowledge.css"></head>
+<body><div class="knowledge-shell">
+  <aside class="knowledge-admin"><div class="brand"><span class="logo">D</span><div><strong>DigiVista Knowledge</strong><small>Grounded document assistant</small></div></div>
+    <a class="back" href="/">← ActionPilot</a>
+    <section class="card"><h2>Knowledge status</h2><div class="row"><span>Documents</span><strong id="docCount">0</strong></div><div class="row"><span>API key</span><strong id="keyStatus">—</strong></div></section>
+    <section><h2>Import workspace folder</h2><p class="hint">Supports PDF, TXT, Markdown, CSV, JSON and HTML.</p><input id="folder" value="knowledge" placeholder="Relative folder"><button id="importFolder" class="primary wide">Import documents</button></section>
+    <section><h2>Paste a document</h2><input id="title" placeholder="Document title"><input id="sourceUrl" placeholder="Official source URL (optional)"><textarea id="content" rows="7" placeholder="Paste approved document content"></textarea><button id="saveDoc" class="primary wide">Save to knowledge</button></section>
+  </aside>
+  <main class="knowledge-main"><header><div><p class="eyebrow">DOCUMENT-GROUNDED CHAT</p><h1>Ask DigiVista</h1></div><span class="privacy">● Approved sources only</span></header>
+    <div id="chat" class="knowledge-chat"><div class="welcome"><div class="orb">✦</div><h3>Ask about approved documents</h3><p>If the answer is not supported by the knowledge base, the assistant will direct you to the DigiVista team.</p></div></div>
+    <form id="askForm"><textarea id="question" rows="1" placeholder="Ask a question…" required></textarea><button class="primary" type="submit">Ask</button></form>
+    <p class="knowledge-disclaimer">Answers may contain errors or outdated information. Verify important matters using official sources.</p>
+  </main>
+  <aside class="documents"><h2>Published documents</h2><div id="documents"><p class="hint">No documents imported.</p></div></aside>
+</div><script type="module" src="/knowledge.js"></script></body></html>
