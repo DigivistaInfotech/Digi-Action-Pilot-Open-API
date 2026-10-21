@@ -4,6 +4,8 @@ This is a self-contained app intended for its own private GitHub repository. It 
 
 For simple setup instructions, example IT and operations tasks, and troubleshooting, read [HOW-TO-USE.md](HOW-TO-USE.md).
 
+For end-user and knowledge-administrator training, read [DigiVista Knowledge Assistant User Help Center](docs/USER-HELP-CENTER.md). This guide is automatically added to the local knowledge database so the chatbot can answer questions about its own operation.
+
 ## Fast start on Windows
 
 1. Install Node.js 22.5 or newer.

@@ -16,6 +16,12 @@ const publicDir = path.join(appDir, "public");
 const sessions = new Map();
 await fs.mkdir(root, { recursive: true });
 const knowledge = await createKnowledgeStore(appDir, root);
+await knowledge.importText({
+  title: "DigiVista Knowledge Assistant User Help Center",
+  content: await fs.readFile(path.join(appDir, "docs", "USER-HELP-CENTER.md"), "utf8"),
+  sourcePath: "docs/USER-HELP-CENTER.md",
+  collection: "public"
+});
 
 const tools = [
   fn("list_files", "List files and folders inside the allowed workspace.", {
