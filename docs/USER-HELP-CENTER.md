@@ -23,7 +23,7 @@ This guide explains how to start the application, add documents, ask questions, 
 - It cannot guarantee that every document is correct or current.
 - It should not make final legal, tax, compliance, medical, security, or financial decisions.
 - The testing version should not be published directly on a public website.
-- It does not yet provide production user accounts or project-level access isolation.
+- It does not yet provide production user accounts or authenticated customer-level access isolation.
 
 ## Roles
 
@@ -64,11 +64,14 @@ Do not upload a document merely because it was found online. Check its ownership
 
 1. Create a folder named `knowledge` inside the assigned ActionPilot workspace.
 2. Copy approved documents into that folder.
-3. Open the Knowledge Assistant page.
-4. Confirm that the folder field displays `knowledge`.
-5. Select **Import documents**.
-6. Review the import summary showing imported, duplicate, and failed files.
-7. Confirm that imported files appear under **Published documents**.
+3. Open the Knowledge Assistant administrator page.
+4. Create or select the correct project knowledge collection.
+5. Confirm that the folder field displays `knowledge`.
+6. Select **Import documents**.
+7. Review the import summary showing imported, duplicate, and failed files.
+8. Confirm that imported files appear under **Published documents** for the selected project.
+
+Use **Open customer chatbot** to open the selected project’s separate testing page. Questions on that page search only the selected project collection.
 
 Supported file types are PDF, TXT, Markdown, CSV, JSON, HTML, and HTM. The current maximum file size is 20 MB per document.
 
@@ -201,7 +204,7 @@ Removing a document from the knowledge database does not delete its original fil
 - Back up the knowledge database and source documents.
 - Restrict administrative document import and removal.
 - Never rely only on a prompt to enforce access control.
-- Add server-side authentication and project isolation before production use.
+- Keep project-scoped retrieval enabled and add server-side authentication and tenant authorization before production use.
 - Review activity and unanswered questions regularly.
 
 ## Testing checklist

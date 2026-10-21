@@ -2,6 +2,7 @@
 <body><div class="knowledge-shell">
   <aside class="knowledge-admin"><div class="brand"><span class="logo">D</span><div><strong>DigiVista Knowledge</strong><small>Grounded document assistant</small></div></div>
     <a class="back" href="/">← ActionPilot</a>
+    <section><h2>Project knowledge</h2><select id="project"></select><div class="project-create"><input id="newProjectName" placeholder="New project name"><input id="newProjectSlug" placeholder="project-slug"><button id="createProject" class="primary wide">Create project</button></div><a id="previewLink" class="back" href="/chat.html?project=public" target="_blank">Open customer chatbot ↗</a></section>
     <section class="card"><h2>Knowledge status</h2><div class="row"><span>Documents</span><strong id="docCount">0</strong></div><div class="row"><span>API key</span><strong id="keyStatus">—</strong></div></section>
     <section><h2>Import workspace folder</h2><p class="hint">Supports PDF, TXT, Markdown, CSV, JSON and HTML.</p><input id="folder" value="knowledge" placeholder="Relative folder"><button id="importFolder" class="primary wide">Import documents</button></section>
     <section><h2>Paste a document</h2><input id="title" placeholder="Document title"><input id="sourceUrl" placeholder="Official source URL (optional)"><textarea id="content" rows="7" placeholder="Paste approved document content"></textarea><button id="saveDoc" class="primary wide">Save to knowledge</button></section>
@@ -12,4 +13,4 @@
     <p class="knowledge-disclaimer">Answers may contain errors or outdated information. Verify important matters using official sources.</p>
   </main>
   <aside class="documents"><h2>Published documents</h2><div id="documents"><p class="hint">No documents imported.</p></div></aside>
-</div><script type="module" src="/knowledge.js"></script></body></html>
+</div><script type="module" src="/knowledge-admin.js"></script></body></html>

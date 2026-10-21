@@ -49,5 +49,10 @@ The Knowledge Assistant can:
 - Display document sources and a verification disclaimer.
 - Refuse unrelated questions and direct the user to the DigiVista team.
 - Detect duplicate documents using a content hash.
+- Create separate project knowledge collections.
+- Open a customer-facing chatbot locked to the selected project route.
+- Apply a basic per-client question rate limit.
 
-Create a `knowledge` folder inside the assigned workspace, place test documents in it, and select **Import documents**. The current interface is for local testing only. Do not publish it on the internet yet: admin authentication, project isolation, rate limiting, and production security controls are planned for the hosted phase.
+Create a project in the administrator page, select it, place test documents in a `knowledge` folder inside the assigned workspace, and select **Import documents**. Use **Open customer chatbot** to test that project independently.
+
+The current interface is for local testing only. Project-scoped retrieval and basic rate limiting are implemented, but production authentication, tenant authorization, administrator protection, audit retention, and deployment hardening are still required before internet publication.

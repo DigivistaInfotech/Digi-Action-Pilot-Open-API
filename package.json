@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check knowledge.mjs && node --check public/app.js && node --check public/knowledge.js",
+    "check": "node --check server.mjs && node --check knowledge.mjs && node --check public/app.js && node --check public/knowledge-admin.js && node --check public/chat.js",
     "test": "node --test tests/*.test.mjs"
   },
   "engines": {

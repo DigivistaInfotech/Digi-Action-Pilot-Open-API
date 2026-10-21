@@ -12,25 +12,33 @@ export async function createKnowledgeStore(appDir, workspace) {
   await fs.mkdir(dataDir, { recursive: true });
   const db = new DatabaseSync(path.join(dataDir, "knowledge.db"));
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
-    CREATE TABLE IF NOT EXISTS documents(id TEXT PRIMARY KEY,title TEXT NOT NULL,source_path TEXT,source_url TEXT,collection_name TEXT NOT NULL DEFAULT 'public',updated_at TEXT,imported_at TEXT NOT NULL,content_hash TEXT NOT NULL UNIQUE,status TEXT NOT NULL DEFAULT 'published');
+    CREATE TABLE IF NOT EXISTS projects(id TEXT PRIMARY KEY,slug TEXT NOT NULL UNIQUE,name TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS documents(id TEXT PRIMARY KEY,title TEXT NOT NULL,source_path TEXT,source_url TEXT,collection_name TEXT NOT NULL DEFAULT 'public',updated_at TEXT,imported_at TEXT NOT NULL,content_hash TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'published');
     CREATE VIRTUAL TABLE IF NOT EXISTS chunks USING fts5(document_id UNINDEXED,chunk_number UNINDEXED,content,tokenize='unicode61 remove_diacritics 2');`);
+  migrateDocumentHashScope(db);
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS documents_project_hash ON documents(collection_name,content_hash)");
+  db.prepare("INSERT OR IGNORE INTO projects(id,slug,name,status,created_at) VALUES (?,?,?,?,?)").run(crypto.randomUUID(),"public","DigiVista General Help","active",new Date().toISOString());
   const addDocument = db.prepare("INSERT INTO documents(id,title,source_path,source_url,collection_name,updated_at,imported_at,content_hash,status) VALUES (?,?,?,?,?,?,?,?,?)");
   const addChunk = db.prepare("INSERT INTO chunks(document_id,chunk_number,content) VALUES (?,?,?)");
 
   async function importText({ title, content, sourcePath=null, sourceUrl=null, collection="public", updatedAt=null }) {
+    const project = requireProject(collection);
     const clean = normalizeText(content);
     if (clean.length < 20) throw new Error("Document has too little readable text.");
     const hash = crypto.createHash("sha256").update(clean).digest("hex");
-    const existing = db.prepare("SELECT id,title FROM documents WHERE content_hash=?").get(hash);
+    const existingSource = sourcePath ? db.prepare("SELECT id,title,content_hash FROM documents WHERE collection_name=? AND source_path=?").get(project.slug,sourcePath) : null;
+    if (existingSource?.content_hash===hash) return { imported:false, duplicate:true, document:existingSource };
+    const existing = db.prepare("SELECT id,title FROM documents WHERE collection_name=? AND content_hash=?").get(project.slug,hash);
     if (existing) return { imported:false, duplicate:true, document:existing };
     const id = crypto.randomUUID(), chunks = splitText(clean);
     db.exec("BEGIN");
     try {
-      addDocument.run(id,String(title||"Untitled document").slice(0,240),sourcePath,sourceUrl,safeCollection(collection),updatedAt,new Date().toISOString(),hash,"published");
+      if(existingSource){db.prepare("DELETE FROM chunks WHERE document_id=?").run(existingSource.id);db.prepare("DELETE FROM documents WHERE id=?").run(existingSource.id);}
+      addDocument.run(id,String(title||"Untitled document").slice(0,240),sourcePath,sourceUrl,project.slug,updatedAt,new Date().toISOString(),hash,"published");
       chunks.forEach((chunk,index)=>addChunk.run(id,index,chunk));
       db.exec("COMMIT");
     } catch(error) { db.exec("ROLLBACK"); throw error; }
-    return { imported:true, duplicate:false, document:{id,title}, chunks:chunks.length };
+    return { imported:true, updated:Boolean(existingSource), duplicate:false, document:{id,title}, chunks:chunks.length };
   }
 
   async function importWorkspace(relativeFolder="knowledge", collection="public") {
@@ -43,15 +51,19 @@ export async function createKnowledgeStore(appDir, workspace) {
   }
 
   function search(question,collection="public",limit=8) {
+    const project=requireProject(collection);
     const stopWords=new Set(["the","and","for","are","this","that","what","when","where","which","with","from","have","does","how","can","you","your","our","about","into","who","why","will","would","could","should","क्या","कैसे","कौन","कहाँ","कब","और","यह","वह","में","का","की","के","से","लिए","है","हैं","था","थे","करें","बताएं"]);
     const terms=[...new Set(String(question).toLowerCase().match(/[\p{L}\p{N}]{3,}/gu)||[])].filter(term=>!stopWords.has(term)).slice(0,16);
     if (!terms.length) return [];
     const expression=terms.map(term=>`"${term.replaceAll('"','""')}"`).join(" OR ");
-    return db.prepare(`SELECT d.id,d.title,d.source_path,d.source_url,d.updated_at,c.content,bm25(chunks) AS rank FROM chunks c JOIN documents d ON d.id=c.document_id WHERE chunks MATCH ? AND d.collection_name=? AND d.status='published' ORDER BY rank LIMIT ?`).all(expression,safeCollection(collection),Math.min(Number(limit)||8,12));
+    return db.prepare(`SELECT d.id,d.title,d.source_path,d.source_url,d.updated_at,c.content,bm25(chunks) AS rank FROM chunks c JOIN documents d ON d.id=c.document_id WHERE chunks MATCH ? AND d.collection_name=? AND d.status='published' ORDER BY rank LIMIT ?`).all(expression,project.slug,Math.min(Number(limit)||8,12));
   }
-  function listDocuments(collection="public") { return db.prepare("SELECT id,title,source_path,source_url,collection_name,updated_at,imported_at,status FROM documents WHERE collection_name=? ORDER BY imported_at DESC").all(safeCollection(collection)); }
+  function listDocuments(collection="public") { const project=requireProject(collection); return db.prepare("SELECT id,title,source_path,source_url,collection_name,updated_at,imported_at,status FROM documents WHERE collection_name=? ORDER BY imported_at DESC").all(project.slug); }
+  function listProjects(){return db.prepare("SELECT slug,name,status,created_at FROM projects WHERE status='active' ORDER BY name").all();}
+  function createProject({slug,name}){const clean=safeCollection(slug);if(!String(name||"").trim())throw new Error("Project name is required.");db.prepare("INSERT INTO projects(id,slug,name,status,created_at) VALUES (?,?,?,?,?)").run(crypto.randomUUID(),clean,String(name).trim().slice(0,120),"active",new Date().toISOString());return {slug:clean,name:String(name).trim()};}
+  function requireProject(value){const slug=safeCollection(value),project=db.prepare("SELECT slug,name,status FROM projects WHERE slug=? AND status='active'").get(slug);if(!project)throw new Error("Project knowledge collection not found.");return project;}
   function removeDocument(id) { db.exec("BEGIN"); try { db.prepare("DELETE FROM chunks WHERE document_id=?").run(id); const result=db.prepare("DELETE FROM documents WHERE id=?").run(id); db.exec("COMMIT"); return {deleted:Number(result.changes)>0}; } catch(error){db.exec("ROLLBACK");throw error;} }
-  return {importText,importWorkspace,search,listDocuments,removeDocument,close:()=>db.close(),fallback:FALLBACK,disclaimer:DISCLAIMER};
+  return {importText,importWorkspace,search,listDocuments,listProjects,createProject,requireProject,removeDocument,close:()=>db.close(),fallback:FALLBACK,disclaimer:DISCLAIMER};
 }
 
 export async function answerFromKnowledge({question,collection,store,apiKey,model}) {
@@ -72,3 +84,4 @@ async function collectFiles(folder){const supported=new Set([".txt",".md",".csv"
 async function extractText(file){const stat=await fs.stat(file);if(stat.size>20_000_000)throw new Error("File exceeds the 20 MB import limit.");if(path.extname(file).toLowerCase()===".pdf"){const parser=new PDFParse({data:await fs.readFile(file)});try{return(await parser.getText()).text;}finally{await parser.destroy();}}let text=await fs.readFile(file,"utf8");if([".html",".htm"].includes(path.extname(file).toLowerCase()))text=text.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ");return text;}
 function normalizeText(value){return String(value||"").replace(/\0/g,"").replace(/\r/g,"").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim();}
 function splitText(text,size=1800,overlap=250){const paragraphs=text.split(/\n{2,}/),chunks=[];let current="";for(const paragraph of paragraphs){if((current+"\n\n"+paragraph).length>size&&current){chunks.push(current.trim());current=current.slice(-overlap)+"\n\n"+paragraph;}else current+=(current?"\n\n":"")+paragraph;}if(current.trim())chunks.push(current.trim());return chunks;}
+function migrateDocumentHashScope(db){const row=db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='documents'").get();if(!row?.sql||!/content_hash\s+TEXT\s+NOT\s+NULL\s+UNIQUE/i.test(row.sql))return;db.exec(`BEGIN; ALTER TABLE documents RENAME TO documents_legacy; CREATE TABLE documents(id TEXT PRIMARY KEY,title TEXT NOT NULL,source_path TEXT,source_url TEXT,collection_name TEXT NOT NULL DEFAULT 'public',updated_at TEXT,imported_at TEXT NOT NULL,content_hash TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'published'); INSERT INTO documents SELECT id,title,source_path,source_url,collection_name,updated_at,imported_at,content_hash,status FROM documents_legacy; DROP TABLE documents_legacy; COMMIT;`);}

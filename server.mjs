@@ -14,6 +14,7 @@ const root = path.resolve(process.env.ACTIONPILOT_WORKSPACE || path.join(appDir,
 const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 const publicDir = path.join(appDir, "public");
 const sessions = new Map();
+const requestWindows = new Map();
 await fs.mkdir(root, { recursive: true });
 const knowledge = await createKnowledgeStore(appDir, root);
 await knowledge.importText({
@@ -210,8 +211,22 @@ function newSession() {
 }
 
 async function api(req, res, url) {
+  const publicChat = url.pathname.match(/^\/api\/chat\/([a-z0-9_-]+)(?:\/(ask))?$/);
+  if (publicChat) {
+    const project = knowledge.requireProject(publicChat[1]);
+    if (req.method === "GET" && !publicChat[2]) return json(res, 200, { project, keyConfigured: Boolean(process.env.OPENAI_API_KEY) });
+    if (req.method === "POST" && publicChat[2] === "ask") {
+      enforceRateLimit(req);
+      const body = await readJson(req), question = String(body.question || "").trim();
+      if (!question) return json(res, 400, { error: "Question is required." });
+      return json(res, 200, await answerFromKnowledge({ question, collection: project.slug, store: knowledge, apiKey: process.env.OPENAI_API_KEY, model }));
+    }
+  }
+  if (url.pathname === "/api/knowledge/projects" && req.method === "GET") return json(res, 200, { projects: knowledge.listProjects() });
+  if (url.pathname === "/api/knowledge/projects" && req.method === "POST") return json(res, 201, knowledge.createProject(await readJson(req)));
   if (url.pathname === "/api/knowledge/status" && req.method === "GET") {
-    return json(res, 200, { model, keyConfigured: Boolean(process.env.OPENAI_API_KEY), workspace: root, documents: knowledge.listDocuments("public") });
+    const project = String(url.searchParams.get("project") || "public");
+    return json(res, 200, { model, keyConfigured: Boolean(process.env.OPENAI_API_KEY), workspace: root, project: knowledge.requireProject(project), projects: knowledge.listProjects(), documents: knowledge.listDocuments(project) });
   }
   if (url.pathname === "/api/knowledge/import-folder" && req.method === "POST") {
     const body = await readJson(req);
@@ -267,6 +282,12 @@ async function api(req, res, url) {
 function publicState(s) { return { ...s, workspace: root, model, keyConfigured: Boolean(process.env.OPENAI_API_KEY) }; }
 function json(res, status, value) { res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); res.end(JSON.stringify(value)); }
 async function readJson(req) { let body = ""; for await (const chunk of req) { body += chunk; if (body.length > 10_000_000) throw new Error("Request too large"); } return body ? JSON.parse(body) : {}; }
+function enforceRateLimit(req) {
+  const now=Date.now(), key=String(req.socket.remoteAddress||"local"), current=requestWindows.get(key);
+  if(!current||now-current.started>60_000){requestWindows.set(key,{started:now,count:1});return;}
+  current.count+=1;
+  if(current.count>30)throw new Error("Too many questions. Please wait a minute and try again.");
+}
 async function loadEnv(file) { try { const text = await fs.readFile(file, "utf8"); for (const line of text.split(/\r?\n/)) { const match = line.match(/^([A-Z0-9_]+)=(.*)$/); if (match && !process.env[match[1]]) process.env[match[1]] = match[2].trim(); } } catch {} }
 
 const server = http.createServer(async (req, res) => {
