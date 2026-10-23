@@ -6,6 +6,10 @@ For simple setup instructions, example IT and operations tasks, and troubleshoot
 
 For end-user and knowledge-administrator training, read [DigiVista Knowledge Assistant User Help Center](docs/USER-HELP-CENTER.md). This guide is automatically added to the local knowledge database so the chatbot can answer questions about its own operation.
 
+For the complete development, security, testing, and production-launch roadmap, read [PROJECT-DEVELOPMENT-CHECKLIST.md](PROJECT-DEVELOPMENT-CHECKLIST.md).
+
+For the benefits, limitations, costs, pilot measures, and continue-or-drop decision criteria, read [PROJECT-FEASIBILITY-AND-PLAN.md](PROJECT-FEASIBILITY-AND-PLAN.md).
+
 ## Fast start on Windows
 
 1. Install Node.js 22.5 or newer.
